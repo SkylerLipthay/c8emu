@@ -94,7 +94,7 @@ impl Cpu {
                 self.pc += 2;
             },
             0x7000 => {
-                self.v[vx] += nn;
+                self.v[vx] = self.v[vx].wrapping_add(nn);
                 self.pc += 2;
             },
             0x8000 if opcode & 0x000f == 0x0000 => {
