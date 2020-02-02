@@ -5,6 +5,6 @@ authors = ["Skyler Lipthay <sl@skylerlipthay.com>"]
 edition = "2018"
 
 [dependencies]
-getopts = "0.2"
+argh = "0.1"
 minifb = "0.15"
 rand = "0.7"

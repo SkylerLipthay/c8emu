@@ -1,41 +1,25 @@
-extern crate getopts;
+extern crate argh;
 extern crate minifb;
 extern crate rand;
 
 mod cpu;
 
-use getopts::Options;
-use std::{env, fs::File, io::Read, time};
+use argh::FromArgs;
+use std::{fs::File, io::Read, time};
 
-fn print_usage(program: &str, opts: Options) {
-    let brief = format!("Usage: {} FILE [options]", program);
-    print!("{}", opts.usage(&brief));
+#[derive(FromArgs)]
+#[argh(description = "A CHIP-8 emulator")]
+struct C8EmuArgs {
+    #[argh(option, description = "frames per second (default 60)", default = "60.0")]
+    fps: f64,
+    #[argh(option, description = "instructions per frame (default 10)", default = "10")]
+    ipf: u64,
+    #[argh(positional)]
+    input: String,
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    let program = args[0].clone();
-
-    let mut opts = Options::new();
-    opts.optopt("", "fps", "set frames per second (default 60)", "FPS");
-    opts.optopt("", "ipf", "set instructions per frame (default 10)", "IPS");
-    opts.optflag("h", "help", "print this help menu");
-    let matches = match opts.parse(&args[1..]) {
-        Ok(m) => { m }
-        Err(f) => { panic!(f.to_string()) }
-    };
-    if matches.opt_present("h") {
-        print_usage(&program, opts);
-        return;
-    }
-    let fps = matches.opt_str("fps").and_then(|s| s.parse::<f64>().ok()).unwrap_or(60.0);
-    let ipf = matches.opt_str("ipf").and_then(|s| s.parse::<u64>().ok()).unwrap_or(10);
-    let input = if !matches.free.is_empty() {
-        matches.free[0].clone()
-    } else {
-        print_usage(&program, opts);
-        return;
-    };
+    let args: C8EmuArgs = argh::from_env();
 
     let mut window = minifb::Window::new(
         "CHIP-8",
@@ -50,10 +34,10 @@ fn main() {
         },
     ).unwrap();
 
-    window.limit_update_rate(Some(time::Duration::from_secs_f64(1.0 / fps)));
+    window.limit_update_rate(Some(time::Duration::from_secs_f64(1.0 / args.fps)));
 
     let mut cpu = cpu::Cpu::new();
-    let mut file = File::open(input).unwrap();
+    let mut file = File::open(args.input).unwrap();
     let mut data = Vec::new();
     file.read_to_end(&mut data).unwrap();
     cpu.load(&data);
@@ -77,7 +61,7 @@ fn main() {
         cpu.set_key(0xb, window.is_key_down(minifb::Key::C));
         cpu.set_key(0xf, window.is_key_down(minifb::Key::V));
 
-        for _ in 0..ipf {
+        for _ in 0..args.ipf {
             cpu.step();
         }
 
