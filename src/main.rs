@@ -4,12 +4,11 @@ extern crate rand;
 
 mod cpu;
 
-use argh::FromArgs;
 use std::{fs::File, io::Read, time};
 
-#[derive(FromArgs)]
+#[derive(argh::FromArgs)]
 #[argh(description = "A CHIP-8 emulator")]
-struct C8EmuArgs {
+struct Args {
     #[argh(option, description = "frames per second (default 60)", default = "60.0")]
     fps: f64,
     #[argh(option, description = "instructions per frame (default 10)", default = "10")]
@@ -19,7 +18,7 @@ struct C8EmuArgs {
 }
 
 fn main() {
-    let args: C8EmuArgs = argh::from_env();
+    let args: Args = argh::from_env();
 
     let mut window = minifb::Window::new(
         "CHIP-8",
@@ -32,14 +31,14 @@ fn main() {
             scale: minifb::Scale::X8,
             scale_mode: minifb::ScaleMode::AspectRatioStretch,
         },
-    ).unwrap();
+    ).expect("failed to create window");
 
     window.limit_update_rate(Some(time::Duration::from_secs_f64(1.0 / args.fps)));
 
     let mut cpu = cpu::Cpu::new();
-    let mut file = File::open(args.input).unwrap();
+    let mut file = File::open(args.input).expect("failed to open input program file");
     let mut data = Vec::new();
-    file.read_to_end(&mut data).unwrap();
+    file.read_to_end(&mut data).expect("failed to read input program file");
     cpu.load(&data);
 
     let mut buffer = [0u32; cpu::SCREEN_SIZE];
@@ -70,11 +69,8 @@ fn main() {
                 buffer[index] = if new_buffer[index] == 0 { 0x9bbc0f } else { 0x0f380f };
             }
         }
-        window.update_with_buffer(&buffer, cpu::SCREEN_WIDTH, cpu::SCREEN_HEIGHT).unwrap();
-    }
 
-    loop {
-        cpu.step();
-        break;
+        window.update_with_buffer(&buffer, cpu::SCREEN_WIDTH, cpu::SCREEN_HEIGHT)
+            .expect("failed to update screen");
     }
 }
